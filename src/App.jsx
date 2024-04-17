@@ -1,42 +1,62 @@
-// import { Icon } from "leaflet";
-import "leaflet/dist/leaflet.css"
-import { MapContainer, Marker, TileLayer } from "react-leaflet"
+import React, { useEffect, useState } from 'react';
+import "leaflet/dist/leaflet.css";
+import { MapContainer, Marker, TileLayer } from "react-leaflet";
+import L from "leaflet";
+import "leaflet-routing-machine";
 
 function App() {
-  const markers = [
-    {
-      geocode: [6.6737, -1.5637],
-      popUp: "Hello, I am engineering gate"
-    },
-    {
-      geocode: [6.6818, -1.5725],
-      popUp: "Hello, I am Faculty of Law"
-    },
-    {
-      geocode: [6.6723, -1.5726],
-      popUp: "Hello, I am Katanga Hall"
-    },
+  const staticMarker = {
+    geocode: [6.6869, -1.5721],
+    popUp: "Hello, I am Tech Junction",
+  };
 
+  const [liveLocation, setLiveLocation] = useState(null);
 
-  ];
-  // const customIcon = new Icon({
-  //   iconUrl: "https://www.flaticon.com/free-icon/pin_2377922",
-  //   iconSize: [38, 38]
-  // })
+  useEffect(() => {
+    // Fetch live location
+    navigator.geolocation.getCurrentPosition((position) => {
+      const liveLocationMarker = {
+        geocode: [position.coords.latitude, position.coords.longitude],
+        popUp: "Live Location",
+      };
+      setLiveLocation(liveLocationMarker);
+    });
+
+    // Clean up
+    return () => {
+      setLiveLocation(null);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!liveLocation) return;
+
+    const map = L.map('map').setView(staticMarker.geocode, 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution:
+        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map);
+
+    const waypoints = [L.latLng(staticMarker.geocode), L.latLng(liveLocation.geocode)];
+
+    L.Routing.control({
+      waypoints,
+      lineOptions: {
+        styles: [{ color: "blue", opacity: 0.5, weight: 6 }],
+      },
+    }).addTo(map);
+
+    // Cleanup
+    return () => {
+      map.remove();
+    };
+  }, [liveLocation]);
 
   return (
     <>
-      <MapContainer center={[6.6885, -1.6244]} zoom={13}>
-        <TileLayer
-          url="https://tile.openstreetmap.org/{z}/{x}/{y}.png" />
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-        {markers.map(marker => (<Marker position={marker.geocode} >
-          {/* icon={customIcon} */}
-        </Marker>))}
-      </MapContainer>
-
+      <div id="map" style={{ height: "100vh", width: "100%" }}></div>
     </>
-  )
+  );
 }
 
-export default App
+export default App;
